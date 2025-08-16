@@ -1,10 +1,9 @@
 #!/bin/bash
-# Installer/Updater for msfvenom autocomplete (Improved, no space after =)
+# Installer/Updater for msfvenom autocomplete (no space after =)
 
 INSTALL_PATH="/etc/bash_completion.d/msfvenom"
 CACHE_DIR="/var/cache/msfvenom_completion"
 
-# Write the completion script
 cat > "$INSTALL_PATH" <<'EOF'
 CACHE_DIR="/var/cache/msfvenom_completion"
 PAYLOADS="$CACHE_DIR/payloads.txt"
@@ -17,14 +16,12 @@ OPTIONS="$CACHE_DIR/options.txt"
 _build_cache() {
     sudo mkdir -p "$CACHE_DIR"
 
-    # Cache payloads, encoders, formats, platforms, archs
     msfvenom -l payloads 2>/dev/null | awk '{print $1}' | grep '/' > "$PAYLOADS"
     msfvenom -l encoders 2>/dev/null | awk '{print $1}' > "$ENCODERS"
     msfvenom -l formats 2>/dev/null | awk '{print $1}' > "$FORMATS"
     msfvenom --list platforms 2>/dev/null | awk 'NR>1 {print $1}' > "$PLATFORMS"
     msfvenom --list archs 2>/dev/null | awk 'NR>1 {print $1}' > "$ARCHS"
 
-    # Common options (include LHOST=/lhost=, LPORT=/lport=)
     cat > "$OPTIONS" <<EOL
 -p
 -f
@@ -36,15 +33,14 @@ _build_cache() {
 --arch
 --payload-options
 --help
-LHOST=
-LPORT=
-lhost=
-lport=
+LHOST
+LPORT
+lhost
+lport
 EOL
 }
 
 _init_cache() {
-    # Build cache only if any file is missing or empty
     for f in "$PAYLOADS" "$ENCODERS" "$FORMATS" "$PLATFORMS" "$ARCHS" "$OPTIONS"; do
         [[ ! -s "$f" ]] && _build_cache && break
     done
@@ -55,14 +51,23 @@ _msfvenom_completion() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    # Autocomplete options (case-sensitive, includes LHOST=/lhost=, LPORT=/lport=)
+    # Options including LHOST/LPORT
     if [[ $cur == -* || $cur == lh* || $cur == lp* || $cur == LH* || $cur == LP* ]]; then
-        compopt -o nospace   # prevent adding space after completion
-        COMPREPLY=( $(compgen -W "$(cat "$OPTIONS")" -- "$cur") )
+        local opts=$(cat "$OPTIONS")
+        # Add = automatically for LHOST/LPORT
+        COMPREPLY=( $(compgen -W "$opts" -- "$cur") )
+        for i in "${!COMPREPLY[@]}"; do
+            case "${COMPREPLY[$i]}" in
+                LHOST|lhost|LPORT|lport)
+                    COMPREPLY[$i]="${COMPREPLY[$i]}="
+                    ;;
+            esac
+        done
+        compopt -o nospace   # prevent adding extra space
         return 0
     fi
 
-    # Flexible handling (search entire command line)
+    # Payloads, encoders, formats, etc
     if [[ " ${COMP_WORDS[*]} " == *" -p "* ]]; then
         COMPREPLY=( $(compgen -W "$(cat "$PAYLOADS")" -- "$cur") )
     elif [[ " ${COMP_WORDS[*]} " == *" -f "* ]]; then
@@ -76,7 +81,6 @@ _msfvenom_completion() {
     fi
 }
 
-# Command to update cache manually
 msfvenom-completion-update() {
     echo "[*] Updating msfvenom autocomplete cache..."
     _build_cache
@@ -87,7 +91,6 @@ _init_cache
 complete -F _msfvenom_completion msfvenom
 EOF
 
-# Install/update message
 echo "[*] Installing/Updating msfvenom-completion..."
 bash -c "source $INSTALL_PATH; msfvenom-completion-update"
 echo "[+] Installation complete. Restart your shell to enable autocomplete."
