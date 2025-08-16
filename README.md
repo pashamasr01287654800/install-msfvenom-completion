@@ -36,8 +36,11 @@ sudo privileges (to create the cache directory).
 Clone the repository and run the installer:
 
 git clone https://github.com/pashamasr01287654800/install-msfvenom-completion.git
+
 cd install-msfvenom-completion
+
 chmod +x install-msfvenom-completion.sh
+
 sudo ./install-msfvenom-completion.sh
 
 Restart your shell afterwards:
@@ -81,4 +84,3 @@ If autocomplete does not work, try:
 
 source /etc/bash_completion
 source /etc/bash_completion.d/msfvenom
-
