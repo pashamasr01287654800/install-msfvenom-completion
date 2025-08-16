@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installer/Updater for msfvenom autocomplete (Improved, Any-order, No-space LHOST/LPORT)
+# Installer/Updater for msfvenom autocomplete (Improved, Correct option mapping, No-space LHOST/LPORT)
 
 INSTALL_PATH="/etc/bash_completion.d/msfvenom"
 CACHE_DIR="/var/cache/msfvenom_completion"
@@ -36,10 +36,6 @@ _build_cache() {
 --arch
 --payload-options
 --help
-LHOST=
-LPORT=
-lhost=
-lport=
 EOL
 }
 
@@ -51,22 +47,40 @@ _init_cache() {
 }
 
 _msfvenom_completion() {
-    local cur cur_lc
+    local cur prev cur_lc
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
     cur_lc="${cur,,}"  # lowercase version
 
-    # Combine all possible completions
-    ALL_OPTIONS="$(cat "$OPTIONS") $(cat "$PAYLOADS") $(cat "$FORMATS") $(cat "$ENCODERS") $(cat "$PLATFORMS") $(cat "$ARCHS")"
-
-    # LHOST/LPORT no trailing space
-    if [[ $cur_lc == lh* || $cur_lc == lp* ]]; then
-        COMPREPLY=( $(compgen -W "$(cat "$OPTIONS")" -- "$cur") )
+    # LHOST autocomplete without trailing space
+    if [[ $cur_lc == lh* ]]; then
+        COMPREPLY=( "LHOST=" )
         compopt -o nospace
-    else
-        COMPREPLY=( $(compgen -W "$ALL_OPTIONS" -- "$cur") )
-        compopt +o nospace
+        return 0
     fi
+
+    # LPORT autocomplete without trailing space
+    if [[ $cur_lc == lp* ]]; then
+        COMPREPLY=( "LPORT=" )
+        compopt -o nospace
+        return 0
+    fi
+
+    # Complete based on previous option
+    case "$prev" in
+        -p) COMPREPLY=( $(compgen -W "$(cat "$PAYLOADS")" -- "$cur") ) ;;
+        -f) COMPREPLY=( $(compgen -W "$(cat "$FORMATS")" -- "$cur") ) ;;
+        -e) COMPREPLY=( $(compgen -W "$(cat "$ENCODERS")" -- "$cur") ) ;;
+        --platform) COMPREPLY=( $(compgen -W "$(cat "$PLATFORMS")" -- "$cur") ) ;;
+        --arch) COMPREPLY=( $(compgen -W "$(cat "$ARCHS")" -- "$cur") ) ;;
+        *) 
+            # If typing an option itself
+            if [[ $cur == -* ]]; then
+                COMPREPLY=( $(compgen -W "$(cat "$OPTIONS")" -- "$cur") )
+            fi
+        ;;
+    esac
 }
 
 # Command to update cache manually
