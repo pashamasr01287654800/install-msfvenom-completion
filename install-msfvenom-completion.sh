@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installer/Updater for msfvenom autocomplete (Improved, Correct option mapping, No-space LHOST/LPORT)
+# Installer/Updater for msfvenom autocomplete (Improved, Mix-case LHOST/LPORT, No-space)
 
 INSTALL_PATH="/etc/bash_completion.d/msfvenom"
 CACHE_DIR="/var/cache/msfvenom_completion"
@@ -47,37 +47,21 @@ _init_cache() {
 }
 
 _msfvenom_completion() {
-    local cur prev cur_lc
+    local cur prev
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    cur_lc="${cur,,}"  # lowercase version
 
-    # lhost autocomplete without trailing space
-    if [[ $cur_lc == lh* ]]; then
-        COMPREPLY=( "lhost=" )
+    # Match lhost/LHOST/LhOsT/ etc
+    if [[ $cur =~ ^[lL][hH][oO][sS][tT]? ]]; then
+        COMPREPLY=( "LHOST=" "lhost=" )
         compopt -o nospace
         return 0
     fi
 
-    # LHOST autocomplete without trailing space
-    if [[ $cur_lc == LH* ]]; then
-        COMPREPLY=( "LHOST=" )
-        compopt -o nospace
-        return 0
-    fi
-    
-    
-# lport autocomplete without trailing space
-    if [[ $cur_lc == lp* ]]; then
-        COMPREPLY=( "lport=" )
-        compopt -o nospace
-        return 0
-    fi
-
-    # LPORT autocomplete without trailing space
-    if [[ $cur_lc == LP* ]]; then
-        COMPREPLY=( "LPORT=" )
+    # Match lport/LPORT/LpOrT etc
+    if [[ $cur =~ ^[lL][pP][oO][rR][tT]? ]]; then
+        COMPREPLY=( "LPORT=" "lport=" )
         compopt -o nospace
         return 0
     fi
@@ -98,6 +82,21 @@ _msfvenom_completion() {
     esac
 }
 
+# Command to update cache manually
+msfvenom-completion-update() {
+    echo "[*] Updating msfvenom autocomplete cache..."
+    _build_cache
+    echo "[+] Cache updated in $CACHE_DIR"
+}
+
+_init_cache
+complete -F _msfvenom_completion msfvenom
+EOF
+
+# Install/update message
+echo "[*] Installing/Updating msfvenom-completion..."
+bash -c "source $INSTALL_PATH; msfvenom-completion-update"
+echo "[+] Installation complete. Restart your shell to enable autocomplete."
 # Command to update cache manually
 msfvenom-completion-update() {
     echo "[*] Updating msfvenom autocomplete cache..."
