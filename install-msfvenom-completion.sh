@@ -1,10 +1,9 @@
 #!/bin/bash
-# Installer/Updater for msfvenom autocomplete (Improved, Mix-case LHOST/LPORT, No-space)
+# Installer/Updater for msfvenom autocomplete (Final improved version)
 
 INSTALL_PATH="/etc/bash_completion.d/msfvenom"
 CACHE_DIR="/var/cache/msfvenom_completion"
 
-# Write the completion script
 cat > "$INSTALL_PATH" <<'EOF'
 CACHE_DIR="/var/cache/msfvenom_completion"
 PAYLOADS="$CACHE_DIR/payloads.txt"
@@ -24,7 +23,7 @@ _build_cache() {
     msfvenom --list platforms 2>/dev/null | awk 'NR>1 {print $1}' > "$PLATFORMS"
     msfvenom --list archs 2>/dev/null | awk 'NR>1 {print $1}' > "$ARCHS"
 
-    # Common options
+    # Common options including only host/port without '-'
     cat > "$OPTIONS" <<EOL
 -p
 -f
@@ -36,53 +35,67 @@ _build_cache() {
 --arch
 --payload-options
 --help
+LHOST=
+LPORT=
+lhost=
+lport=
 EOL
 }
 
 _init_cache() {
-    # Build cache only if any file is missing or empty
-    for f in "$PAYLOADS" "$ENCODERS" "$FORMATS" "$PLATFORMS" "$ARCHS" "$OPTIONS"; do
-        [[ ! -s "$f" ]] && _build_cache && break
-    done
+    [[ ! -s "$PAYLOADS" || ! -s "$ENCODERS" || ! -s "$FORMATS" || ! -s "$PLATFORMS" || ! -s "$ARCHS" || ! -s "$OPTIONS" ]] && _build_cache
 }
 
 _msfvenom_completion() {
-    local cur prev
-    COMPREPLY=()
+    local cur cur_lc COMPREPLY used available opts
     cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    COMPREPLY=()
+    cur_lc="${cur,,}"   # lowercase
 
-    # Match lhost/LHOST/LhOsT/ etc
-    if [[ $cur =~ ^[lL][hH][oO][sS][tT]? ]]; then
-        COMPREPLY=( "LHOST=" "lhost=" )
-        compopt -o nospace
+    # Gather already used words
+    used=("${COMP_WORDS[@]:1}")
+
+    # Read options from cache
+    opts=( $(cat "$OPTIONS") )
+
+    # Only suggest unused options
+    available=()
+    for o in "${opts[@]}"; do
+        if ! [[ " ${used[*]} " =~ " $o " ]]; then
+            available+=("$o")
+        fi
+    done
+
+    # If current word starts with dash, suggest standard options only
+    if [[ $cur == -* ]]; then
+        COMPREPLY=( $(compgen -W "${available[*]}" -- "$cur") )
         return 0
     fi
 
-    # Match lport/LPORT/LpOrT etc
-    if [[ $cur =~ ^[lL][pP][oO][rR][tT]? ]]; then
-        COMPREPLY=( "LPORT=" "lport=" )
-        compopt -o nospace
+    # If current word looks like LHOST/LPORT without dash
+    if [[ $cur_lc == lh* || $cur_lc == lp* ]]; then
+        COMPREPLY=( $(compgen -W "LHOST= LPORT= lhost= lport=" -- "$cur") )
         return 0
     fi
 
-    # Complete based on previous option
-    case "$prev" in
-        -p) COMPREPLY=( $(compgen -W "$(cat "$PAYLOADS")" -- "$cur") ) ;;
-        -f) COMPREPLY=( $(compgen -W "$(cat "$FORMATS")" -- "$cur") ) ;;
-        -e) COMPREPLY=( $(compgen -W "$(cat "$ENCODERS")" -- "$cur") ) ;;
-        --platform) COMPREPLY=( $(compgen -W "$(cat "$PLATFORMS")" -- "$cur") ) ;;
-        --arch) COMPREPLY=( $(compgen -W "$(cat "$ARCHS")" -- "$cur") ) ;;
-        *) 
-            # If typing an option itself
-            if [[ $cur == -* ]]; then
-                COMPREPLY=( $(compgen -W "$(cat "$OPTIONS")" -- "$cur") )
-            fi
-        ;;
-    esac
+    # Suggest payloads, formats, encoders, platforms, archs based on previous words
+    for ((i=1;i<=COMP_CWORD;i++)); do
+        case "${COMP_WORDS[i-1]}" in
+            -p) COMPREPLY=( $(compgen -W "$(cat "$PAYLOADS")" -- "$cur") ) ;;
+            -f) COMPREPLY=( $(compgen -W "$(cat "$FORMATS")" -- "$cur") ) ;;
+            -e) COMPREPLY=( $(compgen -W "$(cat "$ENCODERS")" -- "$cur") ) ;;
+            --platform) COMPREPLY=( $(compgen -W "$(cat "$PLATFORMS")" -- "$cur") ) ;;
+            --arch) COMPREPLY=( $(compgen -W "$(cat "$ARCHS")" -- "$cur") ) ;;
+        esac
+    done
+
+    # If typing a partial payload with slash, suggest from payloads directly
+    if [[ $cur == */* ]]; then
+        COMPREPLY=( $(compgen -W "$(cat "$PAYLOADS")" -- "$cur") )
+    fi
 }
 
-# Command to update cache manually
+# Command to manually update the cache
 msfvenom-completion-update() {
     echo "[*] Updating msfvenom autocomplete cache..."
     _build_cache
