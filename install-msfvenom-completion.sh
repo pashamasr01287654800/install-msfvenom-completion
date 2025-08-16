@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installer/Updater for msfvenom autocomplete (Improved, Any-order)
+# Installer/Updater for msfvenom autocomplete (Improved, Any-order, No-space LHOST/LPORT)
 
 INSTALL_PATH="/etc/bash_completion.d/msfvenom"
 CACHE_DIR="/var/cache/msfvenom_completion"
@@ -56,11 +56,17 @@ _msfvenom_completion() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     cur_lc="${cur,,}"  # lowercase version
 
-    # Combine all possible completions in any order
+    # Combine all possible completions
     ALL_OPTIONS="$(cat "$OPTIONS") $(cat "$PAYLOADS") $(cat "$FORMATS") $(cat "$ENCODERS") $(cat "$PLATFORMS") $(cat "$ARCHS")"
 
-    # Generate completions
-    COMPREPLY=( $(compgen -W "$ALL_OPTIONS" -- "$cur") )
+    # LHOST/LPORT no trailing space
+    if [[ $cur_lc == lh* || $cur_lc == lp* ]]; then
+        COMPREPLY=( $(compgen -W "$(cat "$OPTIONS")" -- "$cur") )
+        compopt -o nospace
+    else
+        COMPREPLY=( $(compgen -W "$ALL_OPTIONS" -- "$cur") )
+        compopt +o nospace
+    fi
 }
 
 # Command to update cache manually
