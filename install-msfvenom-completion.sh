@@ -46,20 +46,19 @@ _init_cache() {
 }
 
 _msfvenom_completion() {
-    local cur prev cur_lc
+    local cur prev
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    cur_lc=$(echo "$cur" | tr '[:upper:]' '[:lower:]')
 
-    # Direct LHOST/LPORT completion with '='
-    if [[ ${cur_lc} == lhost* ]]; then
-        COMPREPLY=( "LHOST=" )
-        return 0
-    fi
-
-    if [[ ${cur_lc} == lport* ]]; then
-        COMPREPLY=( "LPORT=" )
+    # Smart LHOST/LPORT completion preserving first letter case
+    if [[ ${cur} =~ ^[lL] ]]; then
+        first_letter="${cur:0:1}"
+        if [[ $first_letter == [l] ]]; then
+            COMPREPLY=( "lhost=" "lport=" )
+        else
+            COMPREPLY=( "LHOST=" "LPORT=" )
+        fi
         return 0
     fi
 
