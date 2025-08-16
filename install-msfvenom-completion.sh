@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installer/Updater for msfvenom autocomplete
+# Installer/Updater for msfvenom autocomplete (Improved)
 
 INSTALL_PATH="/etc/bash_completion.d/msfvenom"
 CACHE_DIR="/var/cache/msfvenom_completion"
@@ -17,12 +17,14 @@ OPTIONS="$CACHE_DIR/options.txt"
 _build_cache() {
     sudo mkdir -p "$CACHE_DIR"
 
+    # Cache payloads, encoders, formats, platforms, archs
     msfvenom -l payloads 2>/dev/null | awk '{print $1}' | grep '/' > "$PAYLOADS"
     msfvenom -l encoders 2>/dev/null | awk '{print $1}' > "$ENCODERS"
     msfvenom -l formats 2>/dev/null | awk '{print $1}' > "$FORMATS"
-    msfvenom --list platforms 2>/dev/null | awk '{print $1}' | grep -v "Name" > "$PLATFORMS"
-    msfvenom --list archs 2>/dev/null | awk '{print $1}' | grep -v "Name" > "$ARCHS"
+    msfvenom --list platforms 2>/dev/null | awk 'NR>1 {print $1}' > "$PLATFORMS"
+    msfvenom --list archs 2>/dev/null | awk 'NR>1 {print $1}' > "$ARCHS"
 
+    # Common options
     cat > "$OPTIONS" <<EOL
 -p
 -f
@@ -36,73 +38,51 @@ _build_cache() {
 --help
 LHOST=
 LPORT=
+lhost=
+lport=
 EOL
 }
 
 _init_cache() {
-    if [[ ! -s "$PAYLOADS" || ! -s "$ENCODERS" || ! -s "$FORMATS" || ! -s "$PLATFORMS" || ! -s "$ARCHS" || ! -s "$OPTIONS" ]]; then
-        _build_cache
-    fi
+    # Build cache only if any file is missing or empty
+    for f in "$PAYLOADS" "$ENCODERS" "$FORMATS" "$PLATFORMS" "$ARCHS" "$OPTIONS"; do
+        [[ ! -s "$f" ]] && _build_cache && break
+    done
 }
 
 _msfvenom_completion() {
-    local cur prev
+    local cur prev cur_lc
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
+    cur_lc="${cur,,}"  # lowercase version
 
-    # Smart LHOST/LPORT completion preserving first letter case
-    if [[ ${cur} =~ ^[lL] ]]; then
-        first_letter="${cur:0:1}"
-        if [[ $first_letter == [l] ]]; then
-            COMPREPLY=( "lhost=" "lport=" )
-        else
-            COMPREPLY=( "LHOST=" "LPORT=" )
-        fi
+    # Autocomplete options including LHOST/LPORT in any case
+    if [[ $cur == -* || $cur_lc == lhost* || $cur_lc == lport* ]]; then
+        COMPREPLY=( $(compgen -W "$(cat "$OPTIONS")" -- "$cur") )
         return 0
     fi
 
-    # Options and flags
-    if [[ ${cur} == -* ]]; then
-        COMPREPLY=( $(compgen -W "$(cat $OPTIONS)" -- ${cur}) )
-        return 0
-    fi
-
-    if [[ ${prev} == "-p" ]]; then
-        COMPREPLY=( $(compgen -W "$(cat $PAYLOADS)" -- ${cur}) )
-        return 0
-    fi
-
-    if [[ ${prev} == "-f" ]]; then
-        COMPREPLY=( $(compgen -W "$(cat $FORMATS)" -- ${cur}) )
-        return 0
-    fi
-
-    if [[ ${prev} == "-e" ]]; then
-        COMPREPLY=( $(compgen -W "$(cat $ENCODERS)" -- ${cur}) )
-        return 0
-    fi
-
-    if [[ ${prev} == "--platform" ]]; then
-        COMPREPLY=( $(compgen -W "$(cat $PLATFORMS)" -- ${cur}) )
-        return 0
-    fi
-
-    if [[ ${prev} == "--arch" ]]; then
-        COMPREPLY=( $(compgen -W "$(cat $ARCHS)" -- ${cur}) )
-        return 0
-    fi
-
-    if [[ ${cur} == */* ]]; then
-        COMPREPLY=( $(compgen -W "$(cat $PAYLOADS)" -- ${cur}) )
-        return 0
-    fi
+    case "$prev" in
+        -p) COMPREPLY=( $(compgen -W "$(cat "$PAYLOADS")" -- "$cur") ) ;;
+        -f) COMPREPLY=( $(compgen -W "$(cat "$FORMATS")" -- "$cur") ) ;;
+        -e) COMPREPLY=( $(compgen -W "$(cat "$ENCODERS")" -- "$cur") ) ;;
+        --platform) COMPREPLY=( $(compgen -W "$(cat "$PLATFORMS")" -- "$cur") ) ;;
+        --arch) COMPREPLY=( $(compgen -W "$(cat "$ARCHS")" -- "$cur") ) ;;
+        *) 
+            # If typing partial payload with slash
+            if [[ $cur == */* ]]; then
+                COMPREPLY=( $(compgen -W "$(cat "$PAYLOADS")" -- "$cur") )
+            fi
+        ;;
+    esac
 }
 
+# Command to update cache manually
 msfvenom-completion-update() {
     echo "[*] Updating msfvenom autocomplete cache..."
     _build_cache
-    echo "[+] Done. Cache updated in $CACHE_DIR"
+    echo "[+] Cache updated in $CACHE_DIR"
 }
 
 _init_cache
