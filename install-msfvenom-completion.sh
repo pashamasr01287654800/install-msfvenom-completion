@@ -94,3 +94,6 @@ EOF
 echo "[*] Installing/Updating msfvenom-completion..."
 bash -c "source $INSTALL_PATH; msfvenom-completion-update"
 echo "[+] Installation complete. Restart your shell to enable autocomplete."
+
+
+
