@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installer/Updater for msfvenom autocomplete (Final improved version)
+# Installer/Updater for msfvenom autocomplete (Final improved version with case-sensitive LHOST/LPORT)
 
 INSTALL_PATH="/etc/bash_completion.d/msfvenom"
 CACHE_DIR="/var/cache/msfvenom_completion"
@@ -23,7 +23,7 @@ _build_cache() {
     msfvenom --list platforms 2>/dev/null | awk 'NR>1 {print $1}' > "$PLATFORMS"
     msfvenom --list archs 2>/dev/null | awk 'NR>1 {print $1}' > "$ARCHS"
 
-    # Common options including only host/port without '-'
+    # Common options without dash, only host/port variants
     cat > "$OPTIONS" <<EOL
 -p
 -f
@@ -47,10 +47,9 @@ _init_cache() {
 }
 
 _msfvenom_completion() {
-    local cur cur_lc COMPREPLY used available opts
+    local cur COMPREPLY used available opts
     cur="${COMP_WORDS[COMP_CWORD]}"
     COMPREPLY=()
-    cur_lc="${cur,,}"   # lowercase
 
     # Gather already used words
     used=("${COMP_WORDS[@]:1}")
@@ -66,15 +65,24 @@ _msfvenom_completion() {
         fi
     done
 
-    # If current word starts with dash, suggest standard options only
+    # Standard options with dash
     if [[ $cur == -* ]]; then
         COMPREPLY=( $(compgen -W "${available[*]}" -- "$cur") )
         return 0
     fi
 
-    # If current word looks like LHOST/LPORT without dash
-    if [[ $cur_lc == lh* || $cur_lc == lp* ]]; then
-        COMPREPLY=( $(compgen -W "LHOST= LPORT= lhost= lport=" -- "$cur") )
+    # LHOST/LPORT case-sensitive completion
+    if [[ $cur == LHOST* ]]; then
+        COMPREPLY=( $(compgen -W "LHOST=" -- "$cur") )
+        return 0
+    elif [[ $cur == lhost* ]]; then
+        COMPREPLY=( $(compgen -W "lhost=" -- "$cur") )
+        return 0
+    elif [[ $cur == LPORT* ]]; then
+        COMPREPLY=( $(compgen -W "LPORT=" -- "$cur") )
+        return 0
+    elif [[ $cur == lport* ]]; then
+        COMPREPLY=( $(compgen -W "lport=" -- "$cur") )
         return 0
     fi
 
@@ -89,13 +97,13 @@ _msfvenom_completion() {
         esac
     done
 
-    # If typing a partial payload with slash, suggest from payloads directly
+    # Partial payload completion for text with slash
     if [[ $cur == */* ]]; then
         COMPREPLY=( $(compgen -W "$(cat "$PAYLOADS")" -- "$cur") )
     fi
 }
 
-# Command to manually update the cache
+# Manual cache update command
 msfvenom-completion-update() {
     echo "[*] Updating msfvenom autocomplete cache..."
     _build_cache
