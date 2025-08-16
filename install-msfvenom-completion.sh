@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installer/Updater for msfvenom autocomplete (Improved)
+# Installer/Updater for msfvenom autocomplete (Improved, Any-order)
 
 INSTALL_PATH="/etc/bash_completion.d/msfvenom"
 CACHE_DIR="/var/cache/msfvenom_completion"
@@ -51,31 +51,16 @@ _init_cache() {
 }
 
 _msfvenom_completion() {
-    local cur prev cur_lc
+    local cur cur_lc
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
     cur_lc="${cur,,}"  # lowercase version
 
-    # Autocomplete options including LHOST/LPORT - lhost/lport in any case
-    if [[ $cur == -* || $cur_lc == lh* || $cur_lc == lp* ]]; then
-        COMPREPLY=( $(compgen -W "$(cat "$OPTIONS")" -- "$cur") )
-        return 0
-    fi
+    # Combine all possible completions in any order
+    ALL_OPTIONS="$(cat "$OPTIONS") $(cat "$PAYLOADS") $(cat "$FORMATS") $(cat "$ENCODERS") $(cat "$PLATFORMS") $(cat "$ARCHS")"
 
-    case "$prev" in
-        -p) COMPREPLY=( $(compgen -W "$(cat "$PAYLOADS")" -- "$cur") ) ;;
-        -f) COMPREPLY=( $(compgen -W "$(cat "$FORMATS")" -- "$cur") ) ;;
-        -e) COMPREPLY=( $(compgen -W "$(cat "$ENCODERS")" -- "$cur") ) ;;
-        --platform) COMPREPLY=( $(compgen -W "$(cat "$PLATFORMS")" -- "$cur") ) ;;
-        --arch) COMPREPLY=( $(compgen -W "$(cat "$ARCHS")" -- "$cur") ) ;;
-        *) 
-            # If typing partial payload with slash
-            if [[ $cur == */* ]]; then
-                COMPREPLY=( $(compgen -W "$(cat "$PAYLOADS")" -- "$cur") )
-            fi
-        ;;
-    esac
+    # Generate completions
+    COMPREPLY=( $(compgen -W "$ALL_OPTIONS" -- "$cur") )
 }
 
 # Command to update cache manually
