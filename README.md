@@ -83,4 +83,12 @@ The installer must be run with sudo privileges.
 If autocomplete does not work, try:
 
 source /etc/bash_completion
+
 source /etc/bash_completion.d/msfvenom
+
+
+
+
+
+
+
