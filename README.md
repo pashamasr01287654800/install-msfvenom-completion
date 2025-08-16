@@ -1,4 +1,4 @@
-# install-msfvenom-completion
+# install-msfvenom-completion.sh
 
 # msfvenom Autocomplete Installer
 
