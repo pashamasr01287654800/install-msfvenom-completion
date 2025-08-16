@@ -53,15 +53,30 @@ _msfvenom_completion() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     cur_lc="${cur,,}"  # lowercase version
 
-    # LHOST autocomplete without trailing space
+    # lhost autocomplete without trailing space
     if [[ $cur_lc == lh* ]]; then
+        COMPREPLY=( "lhost=" )
+        compopt -o nospace
+        return 0
+    fi
+
+    # LHOST autocomplete without trailing space
+    if [[ $cur_lc == LH* ]]; then
         COMPREPLY=( "LHOST=" )
+        compopt -o nospace
+        return 0
+    fi
+    
+    
+# lport autocomplete without trailing space
+    if [[ $cur_lc == lp* ]]; then
+        COMPREPLY=( "lport=" )
         compopt -o nospace
         return 0
     fi
 
     # LPORT autocomplete without trailing space
-    if [[ $cur_lc == lp* ]]; then
+    if [[ $cur_lc == LP* ]]; then
         COMPREPLY=( "LPORT=" )
         compopt -o nospace
         return 0
