@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installer/Updater for msfvenom autocomplete (Improved)
+# Installer/Updater for msfvenom autocomplete (Improved, no space after =)
 
 INSTALL_PATH="/etc/bash_completion.d/msfvenom"
 CACHE_DIR="/var/cache/msfvenom_completion"
@@ -57,6 +57,7 @@ _msfvenom_completion() {
 
     # Autocomplete options (case-sensitive, includes LHOST=/lhost=, LPORT=/lport=)
     if [[ $cur == -* || $cur == lh* || $cur == lp* || $cur == LH* || $cur == LP* ]]; then
+        compopt -o nospace   # prevent adding space after completion
         COMPREPLY=( $(compgen -W "$(cat "$OPTIONS")" -- "$cur") )
         return 0
     fi
