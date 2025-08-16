@@ -57,8 +57,8 @@ _msfvenom_completion() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     cur_lc="${cur,,}"  # lowercase version
 
-    # Autocomplete options including LHOST/LPORT in any case
-    if [[ $cur == -* || $cur_lc == lhost* || $cur_lc == lport* ]]; then
+    # Autocomplete options including LHOST/LPORT - lhost/lport in any case
+    if [[ $cur == -* || $cur_lc == lh* || $cur_lc == lp* ]]; then
         COMPREPLY=( $(compgen -W "$(cat "$OPTIONS")" -- "$cur") )
         return 0
     fi
