@@ -52,37 +52,55 @@ _msfvenom_completion() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     cur_lc=$(echo "$cur" | tr '[:upper:]' '[:lower:]')
 
-    # Options including LHOST/LPORT any case
-    if [[ ${cur} == -* || ${cur_lc} == lhost* || ${cur_lc} == lport* ]] ; then
+    # LHOST autocomplete with '='
+    if [[ ${cur_lc} == lhost* ]]; then
+        COMPREPLY=( "LHOST=" )
+        return 0
+    fi
+
+    # LPORT autocomplete with '='
+    if [[ ${cur_lc} == lport* ]]; then
+        COMPREPLY=( "LPORT=" )
+        return 0
+    fi
+
+    # Other options
+    if [[ ${cur} == -* ]]; then
         COMPREPLY=( $(compgen -W "$(cat $OPTIONS)" -- ${cur}) )
         return 0
     fi
 
+    # Payloads
     if [[ ${prev} == "-p" ]]; then
         COMPREPLY=( $(compgen -W "$(cat $PAYLOADS)" -- ${cur}) )
         return 0
     fi
 
+    # Formats
     if [[ ${prev} == "-f" ]]; then
         COMPREPLY=( $(compgen -W "$(cat $FORMATS)" -- ${cur}) )
         return 0
     fi
 
+    # Encoders
     if [[ ${prev} == "-e" ]]; then
         COMPREPLY=( $(compgen -W "$(cat $ENCODERS)" -- ${cur}) )
         return 0
     fi
 
+    # Platforms
     if [[ ${prev} == "--platform" ]]; then
         COMPREPLY=( $(compgen -W "$(cat $PLATFORMS)" -- ${cur}) )
         return 0
     fi
 
+    # Archs
     if [[ ${prev} == "--arch" ]]; then
         COMPREPLY=( $(compgen -W "$(cat $ARCHS)" -- ${cur}) )
         return 0
     fi
 
+    # Partial payload completion
     if [[ ${cur} == */* ]]; then
         COMPREPLY=( $(compgen -W "$(cat $PAYLOADS)" -- ${cur}) )
         return 0
