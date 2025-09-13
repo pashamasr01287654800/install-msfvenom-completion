@@ -82,7 +82,7 @@ _msfvenom_completion() {
     fi
 }
 
-msfvenom-completion-update() {
+msfupdate-completion-update() {
     echo "[*] Updating msfvenom autocomplete cache..."
     _build_cache
     echo "[+] Cache updated in $CACHE_DIR"
@@ -93,5 +93,5 @@ complete -F _msfvenom_completion msfvenom
 EOF
 
 echo "[*] Installing/Updating msfvenom-completion..."
-bash -c "source $INSTALL_PATH; msfvenom-completion-update"
+bash -c "source $INSTALL_PATH; msfupdate-completion-update"
 echo "[+] Installation complete. Restart your shell to enable autocomplete."
