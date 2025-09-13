@@ -1,12 +1,18 @@
 #!/bin/bash
 # Installer/Updater for msfvenom zsh autocomplete
-# Save as install-msfvenom-completion_zsh.sh and run with sudo
+# Save as install-msfvenom-completion_zsh.sh and run with: sudo zsh install-msfvenom-completion_zsh.sh
 
 INSTALL_PATH="/usr/share/zsh/site-functions/_msfvenom"
 CACHE_DIR="/var/cache/msfvenom_completion"
 
 cat > "$INSTALL_PATH" <<'EOF'
 #compdef msfvenom
+
+# Ensure zsh completion system and helper functions are loaded
+if (( ! ${+functions[_arguments]} )); then
+  autoload -Uz compinit && compinit
+  autoload -Uz _arguments _values compadd
+fi
 
 CACHE_DIR="/var/cache/msfvenom_completion"
 PAYLOADS="$CACHE_DIR/payloads.txt"
@@ -17,7 +23,7 @@ ARCHS="$CACHE_DIR/archs.txt"
 OPTIONS="$CACHE_DIR/options.txt"
 
 _build_cache() {
-    sudo mkdir -p "$CACHE_DIR"
+    mkdir -p "$CACHE_DIR"
 
     msfvenom -l payloads 2>/dev/null | awk '{print $1}' | grep '/' > "$PAYLOADS"
     msfvenom -l encoders 2>/dev/null | awk '{print $1}' > "$ENCODERS"
@@ -53,6 +59,7 @@ _msfvenom() {
     local -a opts payloads encoders formats plats archs
     _init_cache
 
+    # read files into arrays (zsh-only expansions)
     opts=(${(f)"$(<"$OPTIONS")"})
     payloads=(${(f)"$(<"$PAYLOADS")"})
     encoders=(${(f)"$(<"$ENCODERS")"})
@@ -102,9 +109,7 @@ if ! grep -q "autoload -Uz compinit && compinit" /etc/zsh/zshrc 2>/dev/null; the
     echo 'autoload -Uz compinit && compinit' >> /etc/zsh/zshrc
 fi
 
-# Build cache once now
-zsh -c "source $INSTALL_PATH; msfupdata-completion-update"
+# Build cache once now using zsh (do NOT source zsh completion file with bash/sh)
+zsh -lc "source $INSTALL_PATH; msfupdata-completion-update"
 
-echo "[*] Installing/Updating msfvenom-completion..."
-bash -c "source $INSTALL_PATH; msfupdata-completion-update"
 echo "[+] Installation complete. Restart your shell to enable autocomplete."
