@@ -1,6 +1,6 @@
 #!/bin/bash
 # Installer/Updater for msfvenom bash autocomplete
-# Save as install-msfvenom-completion_bash.sh and run with sudo
+# Save as install-msfvenom-completion_bash.sh and run with sudo bash install-msfvenom-completion_bash.sh
 
 INSTALL_PATH="/etc/bash_completion.d/msfvenom"
 CACHE_DIR="/var/cache/msfvenom_completion"
