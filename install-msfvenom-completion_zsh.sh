@@ -105,9 +105,10 @@ _msfvenom_completion() {
   fi
 
   # LHOST/LPORT suggestions and auto-equals
-  if [[ "$cur" == (LHOST|lhost|LPORT|lport)* ]]; then
+  if [[ "$cur" == lhost* || "$cur" == LHOST* || "$cur" == lport* || "$cur" == LPORT* ]]; then
     # add '=' as suffix and avoid a trailing space
     compadd -S '=' -- LHOST lhost LPORT lport
+    compstate[insert]=''  # ensure no extra space after completion
     return
   fi
 
