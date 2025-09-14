@@ -106,7 +106,8 @@ _msfvenom_completion() {
 
   # LHOST/LPORT suggestions and auto-equals
   if [[ "$cur" == (LHOST|lhost|LPORT|lport)* ]]; then
-    compadd 'LHOST=' 'lhost=' 'LPORT=' 'lport='
+    # add '=' as suffix and avoid a trailing space
+    compadd -S '=' -- LHOST lhost LPORT lport
     return
   fi
 
