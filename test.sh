@@ -135,9 +135,6 @@ _msfvenom_completion() {
     return
   fi
 
-  # LHOST/LPORT suggestions and auto-equals with no trailing space
-  # match partial typing like "lh" or "L" and also when prev token is the key
-  if [[ "$cur" == @(LHOST|lhost|LPORT|lport)* || "$prev" == @(LHOST|lhost|LPORT|lport) ]]; then
     # use -S '' to avoid inserting a space and include '=' in suggestions
     compadd -S '' -- LHOST= lhost= LPORT= lport=
     # ensure no trailing space after completion so user can type the value
