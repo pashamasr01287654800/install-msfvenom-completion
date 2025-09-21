@@ -102,10 +102,6 @@ _msfvenom_completion() {
   prev=${words[CURRENT-1]}
   lc=${cur:l}   # zsh lowercase for case-insensitive match
 
-  # match user typing lhost/lport case-insensitive and offer auto '=' with no trailing space
-  if [[ "$lc" == lhost* || "$lc" == lport* ]]; then
-    # try compadd with -S '' then fallback
-    compadd -S '' 'LHOST=' 'lhost=' 'LPORT=' 'lport=' 2>/dev/null || compadd 'LHOST=' 'lhost=' 'LPORT=' 'lport='
     # prevent trailing space (works on most zsh versions)
     compstate[nospace]=1 2>/dev/null || true
     return
@@ -221,3 +217,8 @@ fi
 echo "[*] Installing/Updating msfvenom-completion (zsh)..."
 echo "[+] Installation complete. Restart your shell or run: source $INSTALL_PATH"
 echo "[*] To update cache later run: sudo msfupdate-completion-update"
+
+
+
+
+
