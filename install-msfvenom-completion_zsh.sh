@@ -39,12 +39,13 @@ EOL
 }
 
 _init_cache() {
-  for f in "$PAYLOADS" "$ENCODERS" "$FORMATS" "$PLATFORMS" "$ARCHS" "$OPTIONS"; do
-    if [[ ! -s "$f" ]]; then
-      _build_cache_local
-      break
-    fi
-  done
+  # avoid zsh "no matches found" by checking dir exists
+  if [[ -d "$CACHE_DIR" ]]; then
+    rm -rf "$CACHE_DIR"/* 2>/dev/null || true
+  else
+    mkdir -p "$CACHE_DIR"
+  fi
+  _build_cache_local
 }
 
 # ensure destination dir exists before writing
@@ -96,63 +97,66 @@ msfupdate-completion-update() {
 _msfvenom_completion() {
   typeset -A opt_args
   local -a expl
-  local cur prev
+  local cur prev lc
   cur=${words[CURRENT]}
   prev=${words[CURRENT-1]}
+  lc=${cur:l}   # zsh lowercase for case-insensitive match
+
+  # match user typing lhost/lport case-insensitive and offer auto '=' with no trailing space
+  if [[ "$lc" == lhost* || "$lc" == lport* ]]; then
+    # try compadd with -S '' then fallback
+    compadd -S '' 'LHOST=' 'lhost=' 'LPORT=' 'lport=' 2>/dev/null || compadd 'LHOST=' 'lhost=' 'LPORT=' 'lport='
+    # prevent trailing space (works on most zsh versions)
+    compstate[nospace]=1 2>/dev/null || true
+    return
+  fi
 
   if [[ $prev == "-p" ]]; then
     if [[ -s "$PAYLOADS" ]]; then
-      compadd -- ${(f)"$(cat -- "$PAYLOADS" 2>/dev/null)"}
+      compadd -- ${(f)"$(<"$PAYLOADS")"}
     fi
     return
   fi
 
   if [[ $prev == "-f" ]]; then
     if [[ -s "$FORMATS" ]]; then
-      compadd -- ${(f)"$(cat -- "$FORMATS" 2>/dev/null)"}
+      compadd -- ${(f)"$(<"$FORMATS")"}
     fi
     return
   fi
 
   if [[ $prev == "--platform" ]]; then
     if [[ -s "$PLATFORMS" ]]; then
-      compadd -- ${(f)"$(cat -- "$PLATFORMS" 2>/dev/null)"}
+      compadd -- ${(f)"$(<"$PLATFORMS")"}
     fi
     return
   fi
 
   if [[ $prev == "--arch" ]]; then
     if [[ -s "$ARCHS" ]]; then
-      compadd -- ${(f)"$(cat -- "$ARCHS" 2>/dev/null)"}
+      compadd -- ${(f)"$(<"$ARCHS")"}
     fi
     return
   fi
 
   if [[ $prev == "-e" ]]; then
     if [[ -s "$ENCODERS" ]]; then
-      compadd -- ${(f)"$(cat -- "$ENCODERS" 2>/dev/null)"}
+      compadd -- ${(f)"$(<"$ENCODERS")"}
     fi
-    return
-  fi
-
-  # LHOST/LPORT suggestions and auto-equals with no trailing space
-  if [[ "$cur" == (LHOST|lhost|LPORT|lport)* ]]; then
-    compadd 'LHOST=' 'lhost=' 'LPORT=' 'lport='
-    compstate[nospace]=1
     return
   fi
 
   # contextual completions if any of the flags exist anywhere on the command line
   if [[ " ${words[*]} " == *" -p "* ]]; then
     if [[ -s "$PAYLOADS" ]]; then
-      compadd -- ${(f)"$(cat -- "$PAYLOADS" 2>/dev/null)"}
+      compadd -- ${(f)"$(<"$PAYLOADS")"}
     fi
     return
   fi
 
   # default: suggest options
   if [[ -s "$OPTIONS" ]]; then
-    compadd -- ${(f)"$(cat -- "$OPTIONS" 2>/dev/null)"}
+    compadd -- ${(f)"$(<"$OPTIONS")"}
   fi
 }
 compdef _msfvenom_completion msfvenom
