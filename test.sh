@@ -39,13 +39,12 @@ EOL
 }
 
 _init_cache() {
-  # Force rebuild every run (safe guard if CACHE_DIR empty)
-  if [[ -z "$CACHE_DIR" ]]; then
-    echo "ERROR: CACHE_DIR empty, aborting" >&2
-    return 1
+  # avoid zsh "no matches found" by checking dir exists
+  if [[ -d "$CACHE_DIR" ]]; then
+    rm -rf "$CACHE_DIR"/* 2>/dev/null || true
+  else
+    mkdir -p "$CACHE_DIR"
   fi
-  mkdir -p "$CACHE_DIR"
-  rm -rf "${CACHE_DIR:?}"/* 2>/dev/null || true
   _build_cache_local
 }
 
@@ -98,14 +97,16 @@ msfupdate-completion-update() {
 _msfvenom_completion() {
   typeset -A opt_args
   local -a expl
-  local cur prev
+  local cur prev lc
   cur=${words[CURRENT]}
   prev=${words[CURRENT-1]}
+  lc=${cur:l}   # zsh lowercase for case-insensitive match
 
-  # match user typing LHOST/lhost/LPORT/lport and offer auto '=' with no trailing space
-  if [[ "$cur" == LHOST* || "$cur" == lhost* || "$cur" == LPORT* || "$cur" == lport* ]]; then
-    # compadd -S '' ensures compstate[nospace] works reliably across zsh versions
+  # match user typing lhost/lport case-insensitive and offer auto '=' with no trailing space
+  if [[ "$lc" == lhost* || "$lc" == lport* ]]; then
+    # try compadd with -S '' then fallback
     compadd -S '' 'LHOST=' 'lhost=' 'LPORT=' 'lport=' 2>/dev/null || compadd 'LHOST=' 'lhost=' 'LPORT=' 'lport='
+    # prevent trailing space (works on most zsh versions)
     compstate[nospace]=1 2>/dev/null || true
     return
   fi
