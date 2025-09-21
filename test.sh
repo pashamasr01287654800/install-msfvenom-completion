@@ -14,7 +14,7 @@ OPTIONS="$CACHE_DIR/options.txt"
 BIN_UPDATE="/usr/local/bin/msfupdate-completion-update"
 
 _build_cache_local() {
-  mkdir -p -- "$CACHE_DIR"
+  mkdir -p "$CACHE_DIR"
   msfvenom -l payloads 2>/dev/null | awk '{print $1}' | grep '/' >| "$PAYLOADS" 2>/dev/null || true
   msfvenom -l encoders 2>/dev/null | awk '{print $1}' >| "$ENCODERS" 2>/dev/null || true
   msfvenom -l formats 2>/dev/null | awk '{print $1}' >| "$FORMATS" 2>/dev/null || true
@@ -39,16 +39,18 @@ EOL
 }
 
 _init_cache() {
-  for f in "$PAYLOADS" "$ENCODERS" "$FORMATS" "$PLATFORMS" "$ARCHS" "$OPTIONS"; do
-    if [[ ! -s "$f" ]]; then
-      _build_cache_local
-      break
-    fi
-  done
+  # Force rebuild every run (safe guard if CACHE_DIR empty)
+  if [[ -z "$CACHE_DIR" ]]; then
+    echo "ERROR: CACHE_DIR empty, aborting" >&2
+    return 1
+  fi
+  mkdir -p "$CACHE_DIR"
+  rm -rf "${CACHE_DIR:?}"/* 2>/dev/null || true
+  _build_cache_local
 }
 
 # ensure destination dir exists before writing
-mkdir -p -- "$(dirname "$INSTALL_PATH")"
+mkdir -p "$(dirname "$INSTALL_PATH")"
 
 # write the zsh completion file with embedded cache-builder + update function
 cat >| "$INSTALL_PATH" <<'EOF'
@@ -63,7 +65,7 @@ ARCHS="$CACHE_DIR/archs.txt"
 OPTIONS="$CACHE_DIR/options.txt"
 
 _build_cache() {
-  mkdir -p -- "$CACHE_DIR"
+  mkdir -p "$CACHE_DIR"
   msfvenom -l payloads 2>/dev/null | awk '{print $1}' | grep '/' >| "$PAYLOADS" 2>/dev/null || true
   msfvenom -l encoders 2>/dev/null | awk '{print $1}' >| "$ENCODERS" 2>/dev/null || true
   msfvenom -l formats 2>/dev/null | awk '{print $1}' >| "$FORMATS" 2>/dev/null || true
@@ -100,66 +102,60 @@ _msfvenom_completion() {
   cur=${words[CURRENT]}
   prev=${words[CURRENT-1]}
 
-  # payload after -p
+  # match user typing LHOST/lhost/LPORT/lport and offer auto '=' with no trailing space
+  if [[ "$cur" == LHOST* || "$cur" == lhost* || "$cur" == LPORT* || "$cur" == lport* ]]; then
+    # compadd -S '' ensures compstate[nospace] works reliably across zsh versions
+    compadd -S '' 'LHOST=' 'lhost=' 'LPORT=' 'lport=' 2>/dev/null || compadd 'LHOST=' 'lhost=' 'LPORT=' 'lport='
+    compstate[nospace]=1 2>/dev/null || true
+    return
+  fi
+
   if [[ $prev == "-p" ]]; then
     if [[ -s "$PAYLOADS" ]]; then
-      compadd -- ${(f)"$(cat -- "$PAYLOADS" 2>/dev/null)"}
+      compadd -- ${(f)"$(<"$PAYLOADS")"}
     fi
     return
   fi
 
-  # format after -f
   if [[ $prev == "-f" ]]; then
     if [[ -s "$FORMATS" ]]; then
-      compadd -- ${(f)"$(cat -- "$FORMATS" 2>/dev/null)"}
+      compadd -- ${(f)"$(<"$FORMATS")"}
     fi
     return
   fi
 
-  # platform after --platform
   if [[ $prev == "--platform" ]]; then
     if [[ -s "$PLATFORMS" ]]; then
-      compadd -- ${(f)"$(cat -- "$PLATFORMS" 2>/dev/null)"}
+      compadd -- ${(f)"$(<"$PLATFORMS")"}
     fi
     return
   fi
 
-  # arch after --arch
   if [[ $prev == "--arch" ]]; then
     if [[ -s "$ARCHS" ]]; then
-      compadd -- ${(f)"$(cat -- "$ARCHS" 2>/dev/null)"}
+      compadd -- ${(f)"$(<"$ARCHS")"}
     fi
     return
   fi
 
-  # encoders after -e
   if [[ $prev == "-e" ]]; then
     if [[ -s "$ENCODERS" ]]; then
-      compadd -- ${(f)"$(cat -- "$ENCODERS" 2>/dev/null)"}
+      compadd -- ${(f)"$(<"$ENCODERS")"}
     fi
     return
   fi
 
-  # LHOST/LPORT suggestions and auto-equals with no trailing space.
-  # Use explicit comparisons to avoid zsh pattern parsing issues.
-  if [[ $cur == LHOST* || $cur == lhost* || $cur == LPORT* || $cur == lport* ]]; then
-    # Suggest the variables with '=' appended so user can type LHOST= and continue
-    compadd 'LHOST=' 'lhost=' 'LPORT=' 'lport='
-    compstate[nospace]=1
-    return
-  fi
-
-  # contextual completions if -p present anywhere
+  # contextual completions if any of the flags exist anywhere on the command line
   if [[ " ${words[*]} " == *" -p "* ]]; then
     if [[ -s "$PAYLOADS" ]]; then
-      compadd -- ${(f)"$(cat -- "$PAYLOADS" 2>/dev/null)"}
+      compadd -- ${(f)"$(<"$PAYLOADS")"}
     fi
     return
   fi
 
   # default: suggest options
   if [[ -s "$OPTIONS" ]]; then
-    compadd -- ${(f)"$(cat -- "$OPTIONS" 2>/dev/null)"}
+    compadd -- ${(f)"$(<"$OPTIONS")"}
   fi
 }
 compdef _msfvenom_completion msfvenom
@@ -179,13 +175,13 @@ ARCHS="$CACHE_DIR/archs.txt"
 OPTIONS="$CACHE_DIR/options.txt"
 
 _build_cache() {
-  mkdir -p -- "$CACHE_DIR"
-  msfvenom -l payloads 2>/dev/null | awk '{print $1}' | grep '/' >| "$PAYLOADS" 2>/dev/null || true
-  msfvenom -l encoders 2>/dev/null | awk '{print $1}' >| "$ENCODERS" 2>/dev/null || true
-  msfvenom -l formats 2>/dev/null | awk '{print $1}' >| "$FORMATS" 2>/dev/null || true
-  msfvenom --list platforms 2>/dev/null | awk 'NR>1 {print $1}' >| "$PLATFORMS" 2>/dev/null || true
-  msfvenom --list archs 2>/dev/null | awk 'NR>1 {print $1}' >| "$ARCHS" 2>/dev/null || true
-  cat >| "$OPTIONS" <<EOL
+  mkdir -p "$CACHE_DIR"
+  msfvenom -l payloads 2>/dev/null | awk '{print $1}' | grep '/' > "$PAYLOADS" 2>/dev/null || true
+  msfvenom -l encoders 2>/dev/null | awk '{print $1}' > "$ENCODERS" 2>/dev/null || true
+  msfvenom -l formats 2>/dev/null | awk '{print $1}' > "$FORMATS" 2>/dev/null || true
+  msfvenom --list platforms 2>/dev/null | awk 'NR>1 {print $1}' > "$PLATFORMS" 2>/dev/null || true
+  msfvenom --list archs 2>/dev/null | awk 'NR>1 {print $1}' > "$ARCHS" 2>/dev/null || true
+  cat > "$OPTIONS" <<EOL
 -p
 -f
 -e
